@@ -65,6 +65,12 @@ df_date['date_label'] = df_date.apply(lambda d: {'style': {'transform': 'rotate(
                                                  'label': d.date.strftime('%d-%b-%Y')}
 if (d.name < len(df_date) - 10) & (d.name % 10 == 0) else '', axis=1)
 
+lst_measure = {'Confirmed': 'confirm',
+               'Active': 'active',
+               'Recovered': 'recover',
+               'Death': 'death'}
+df_measure = pd.DataFrame(list(zip(lst_measure.keys(), lst_measure.values())), columns=['label', 'measure'])
+
 # END BASE DATAFRAMES
 
 # Filtered dataframes
@@ -132,6 +138,16 @@ filter_date()
 
 
 # CALL BACK FUNCTIONS
+@app.callback(
+    Output('report_date', 'children'),
+    [Input('filter_date', 'value')])
+def report_date(date_range):
+    header_text = '''
+    #### Report on {}
+    '''.format(df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[-1].strftime('%d - %b - %Y'))
+    return header_text
+
+
 # INDICATORS
 @app.callback(
     Output('fig_ind', 'figure'),
@@ -168,7 +184,7 @@ def update_indicators(selected_continent, date_range, selected_country):
                **format_ind_delta},
         domain={'column': 1, 'row': 0, 'y': [0.99, 1]},
         number=format_ind_number_neutral,
-        title={**{'text': 'UMULATIVE CONFIRMED CASES'}, **format_ind_title}
+        title={**{'text': 'CUMULATIVE CONFIRMED CASES'}, **format_ind_title}
     ))
 
     # Recover
@@ -233,11 +249,12 @@ def update_stacked_area(selected_continent, date_range, selected_country):
                 to_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[-1])
     filter_country(selected_country)
 
+    df = df_country.groupby(by=['date'], as_index=False).sum()
     # STACKED AREA CHART
     fig_stacked_area = go.Figure()
 
-    fig_stacked_area.add_trace(go.Scatter(x=df_continent['date'],
-                                          y=df_continent['active'],
+    fig_stacked_area.add_trace(go.Scatter(x=df['date'],
+                                          y=df['active'],
                                           mode='lines',
                                           line={'width': 1,
                                                 'color': 'blue'},
@@ -249,8 +266,8 @@ def update_stacked_area(selected_continent, date_range, selected_country):
                                           orientation='v',
                                           stackgroup='one',
                                           fill='tonexty'))
-    fig_stacked_area.add_trace(go.Scatter(x=df_continent['date'],
-                                          y=df_continent['recover'],
+    fig_stacked_area.add_trace(go.Scatter(x=df['date'],
+                                          y=df['recover'],
                                           mode='lines',
                                           line={'width': 1,
                                                 'color': 'green'},
@@ -262,8 +279,8 @@ def update_stacked_area(selected_continent, date_range, selected_country):
                                           orientation='v',
                                           stackgroup='one',
                                           fill='tonexty'))
-    fig_stacked_area.add_trace(go.Scatter(x=df_continent['date'],
-                                          y=df_continent['death'],
+    fig_stacked_area.add_trace(go.Scatter(x=df['date'],
+                                          y=df['death'],
                                           mode='lines',
                                           line={'width': 1,
                                                 'color': 'red'},
@@ -275,8 +292,8 @@ def update_stacked_area(selected_continent, date_range, selected_country):
                                           orientation='v',
                                           stackgroup='one',
                                           fill='tonexty'))
-    fig_stacked_area.add_trace(go.Scatter(x=df_continent['date'],
-                                          y=df_continent['confirm'],
+    fig_stacked_area.add_trace(go.Scatter(x=df['date'],
+                                          y=df['confirm'],
                                           mode='lines',
                                           line={'width': 0,
                                                 'color': '#a1a1a1'},
@@ -289,15 +306,27 @@ def update_stacked_area(selected_continent, date_range, selected_country):
                                           stackgroup='',
                                           showlegend=False))
 
+    title_content = 'Overall Infections '
+    if selected_country is not None and len(selected_country) > 0:
+        title_content += 'in Selected Countries'
+    elif selected_continent == 'World':
+        title_content += 'on Worldwide'
+    else:
+        title_content += 'in {}'.format(selected_continent)
+
     fig_stacked_area.update_layout(
         xaxis={'gridcolor': theme_color['grid']},
         yaxis={'gridcolor': theme_color['grid']},
         hovermode='x',
+        title={'text': title_content,
+               'x': 0.5},
+        xaxis_title='Date',
+        yaxis_title='Number of Cases',
         legend={'title': 'Metrics'},
         font_color=theme_color['text'],
         paper_bgcolor=theme_color['background'],
-        plot_bgcolor=theme_color['background']
-    )
+        plot_bgcolor=theme_color['background'],
+        margin={"r": 15, "t": 90, "l": 15, "b": 20})
     # END STACKED AREA CHART
     return fig_stacked_area
 
@@ -306,24 +335,27 @@ def update_stacked_area(selected_continent, date_range, selected_country):
     Output('fig_line', 'figure'),
     [Input('filter_continent', 'value'),
      Input('filter_date', 'value'),
-     Input('filter_country', 'value')])
-def update_line_chart(selected_continent, date_range, selected_country):
+     Input('filter_country', 'value'),
+     Input('measure_selection', 'value')])
+def update_line_chart(selected_continent, date_range, selected_country, measure_selection = df_measure['label'].iat[0]):
     filter_continent(selected_continent)
     filter_date(from_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[0],
                 to_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[-1])
     filter_country(selected_country)
 
+    measure = df_measure['measure'][df_measure['label'] == measure_selection].iat[0]
+
     # LINE CHART
     fig_line = go.Figure()
 
-    df_country_latest = df_country[df_country.date == df_country.date.max()].sort_values(by='confirm', ascending=False,
+    df_country_latest = df_country[df_country.date == df_country.date.max()].sort_values(by=measure, ascending=False,
                                                                                          axis=0)
     countries = df_country_latest['location'][0:10:1].to_list()
 
     for country in countries:
         df_line = df_country[df_country['location'] == country]
         fig_line.add_trace(go.Scatter(x=df_line['date'],
-                                      y=df_line['active'],
+                                      y=df_line[measure],
                                       mode='lines',
                                       line={'width': 1},
                                       name=country,
@@ -337,10 +369,15 @@ def update_line_chart(selected_continent, date_range, selected_country):
         xaxis={'gridcolor': theme_color['grid']},
         yaxis={'gridcolor': theme_color['grid']},
         hovermode='x',
+        title={'text': 'Top {} {} Cases by Countries '.format(len(countries), measure_selection),
+               'x': 0.5},
+        xaxis_title='Date',
+        yaxis_title='Number of Cases',
         legend={'title': 'Countries'},
         font_color=theme_color['text'],
         paper_bgcolor=theme_color['background'],
-        plot_bgcolor=theme_color['background']
+        plot_bgcolor=theme_color['background'],
+        margin={"r": 15, "t": 90, "l": 15, "b": 20}
     )
     # END LINE CHART
     return fig_line
@@ -408,7 +445,8 @@ def update_map(selected_continent, date_range, selected_country):
                                          'and Active Cases on ' + max(df['date']).strftime('%d-%b-%Y')
                                          + ' (size of markers)',
                                  'font': {'size': 15,
-                                          'color': theme_color['text']}},
+                                          'color': theme_color['text']},
+                                 'x': 0.44},
                           margin={"r": 0, "t": 75, "l": 0, "b": 0},
                           paper_bgcolor=theme_color['background'],
                           plot_bgcolor=theme_color['background']
@@ -423,6 +461,13 @@ def update_map(selected_continent, date_range, selected_country):
 def update_filter_country(selected_continent):
     filter_continent(selected_continent)
     return [{'label': i, 'value': i} for i in df_country['location'].drop_duplicates()]
+
+
+@app.callback(
+    Output('filter_country', 'value'),
+    [Input('filter_continent', 'value')])
+def update_filter_country_value(selected_continent):
+    return None
 
 
 # @app.callback(
@@ -445,58 +490,86 @@ app.layout = \
     html.Div(children=[
         html.Div(dcc.RadioItems(id='filter_continent',
                                 options=[{'label': i, 'value': i} for i in
-                                         ['World', 'Africa', 'Asia', 'Europe', 'North America', 'Oceania',
-                                          'South America']],
+                                         ['World'] + df_covid_jhu_full['continent']
+                                         [~df_covid_jhu_full['continent'].isna()].drop_duplicates().to_list()],
                                 value='World',
                                 labelStyle={'float': 'center', 'display': 'inline-block'}),
-                 style={'textAlign': 'center',
-                        'color': theme_color['text'],
-                        'width': '100%',
-                        'height': 50,
-                        'float': 'center',
-                        'display': 'inline-block'}),
-        html.Div(dcc.Dropdown(id='filter_country',
-                              multi=True,
-                              style={'width': '90%',
-                                     'float': 'center',
-                                     'marginLeft': '5%'})
-                 ),
+                 style=dict(textAlign='center',
+                            color=theme_color['text'],
+                            width='100%',
+                            height=50,
+                            float='center',
+                            display='inline-block')),
         html.Div(dcc.RangeSlider(id='filter_date',
                                  min=0,
                                  max=(df_continent.date.max() - df_continent.date.min()).days,
                                  step=None,
                                  value=[0, (df_continent.date.max() - df_continent.date.min()).days],
                                  marks=df_date['date_label'].to_dict(),
-                                 updatemode='mouseup'
-                                 ),
-                 style={'textAlign': 'center',
-                        'color': theme_color['text'],
-                        'width': '90%',
-                        'marginLeft': '5%',
-                        'height': 50,
-                        'float': 'center',
-                        'display': 'inline-block'}
-                 ),
+                                 updatemode='mouseup'),
+                 style=dict(textAlign='center',
+                            color=theme_color['text'],
+                            width='90%',
+                            marginLeft='5%',
+                            height=50,
+                            float='center',
+                            display='inline-block')),
+        html.Div(dcc.Markdown(id='report_date', ),
+                 style=dict(textAlign='center',
+                            color=theme_color['text'],
+                            width='100%',
+                            height=50,
+                            float='center',
+                            display='inline-block')),
         html.Div(dcc.Graph(id='fig_ind'),
                  style=dict(textAlign='center',
                             width='90%',
                             marginLeft='5%',
-                            display='inline-block')
-                 ),
-        html.Div(dcc.Graph(id='fig_stacked_area'),
-                 style=dict(textAlign='center',
-                            width='45%',
-                            marginLeft='5%',
+                            display='inline-block')),
+        html.Div(dcc.Dropdown(id='filter_country',
+                              multi=True),
+                 style=dict(width='90%',
                             float='center',
-                            display='inline-block')
-                 ),
-        html.Div(dcc.Graph(id='fig_line'),
-                 style=dict(textAlign='center',
-                            width='45%',
-                            marginRight='5%',
-                            float='center',
-                            display='inline-block')
-                 ),
+                            marginLeft='5%')),
+        # Stacked area chart, line chart
+        html.Div(children=[
+            html.Div(dcc.Graph(id='fig_stacked_area'),
+                     style=dict(width='50%',
+                                height='450',
+                                marginLeft='0',
+                                float='left',
+                                display='inline-block')),
+            html.Div(children=[
+                dcc.Graph(id='fig_line',
+                          style=dict(textAlign='center',
+                                     width='100%',
+                                     height='450',
+                                     marginLeft='0',
+                                     display='inline-block')),
+                dcc.RadioItems(id='measure_selection',
+                               options=[{'label': i, 'value': i} for i in
+                                        df_measure['label'].to_list()],
+                               value=df_measure['label'].to_list()[0],
+                               labelStyle={'float': 'center', 'display': 'inline-block'},
+                               style=dict(textAlign='center',
+                                          color=theme_color['text'],
+                                          height=35,
+                                          marginLeft=120,
+                                          float='left',
+                                          display='inline-block')
+                               )
+            ],
+                style=dict(textAlign='center',
+                           width='50%',
+                           marginLeft='0',
+                           marginRight='0',
+                           # float='right',
+                           display='inline-block'))],
+            style=dict(width='90%',
+                       marginLeft='5%',
+                       float='center',
+                       display='inline-block')
+        ),
         html.Div(dcc.Graph(id='fig_map'),
                  style=dict(textAlign='center',
                             width='90%',
