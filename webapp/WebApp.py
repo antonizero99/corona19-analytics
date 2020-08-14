@@ -337,7 +337,7 @@ def update_stacked_area(selected_continent, date_range, selected_country):
      Input('filter_date', 'value'),
      Input('filter_country', 'value'),
      Input('measure_selection', 'value')])
-def update_line_chart(selected_continent, date_range, selected_country, measure_selection = df_measure['label'].iat[0]):
+def update_line_chart(selected_continent, date_range, selected_country, measure_selection=df_measure['label'].iat[0]):
     filter_continent(selected_continent)
     filter_date(from_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[0],
                 to_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[-1])
@@ -488,6 +488,17 @@ fig_scatter = go.Figure()
 # PAGE LAYOUT
 app.layout = \
     html.Div(children=[
+        html.H1(children='Corona 19 Analytics',
+                style=dict(
+                    textAlign='center',
+                    color=theme_color['text'])),
+        html.Div(children='Data last updated: {}'.format(df_covid_jhu_full.date.max().strftime('%d-%b-%Y')),
+                 style=dict(
+                     fontStyle='italic',
+                     textAlign='center',
+                     color=theme_color['text'],
+                     marginTop=0,
+                     marginBottom=20)),
         html.Div(dcc.RadioItems(id='filter_continent',
                                 options=[{'label': i, 'value': i} for i in
                                          ['World'] + df_covid_jhu_full['continent']
@@ -526,8 +537,15 @@ app.layout = \
                             width='90%',
                             marginLeft='5%',
                             display='inline-block')),
+        html.Div('Multiple selection is allowed, clear the text box for "Select All"',
+                 style=dict(width='90%',
+                            float='center',
+                            marginLeft='5%',
+                            color='#fff',
+                            fontStyle='italic')),
         html.Div(dcc.Dropdown(id='filter_country',
-                              multi=True),
+                              multi=True,
+                              placeholder='Select Country'),
                  style=dict(width='90%',
                             float='center',
                             marginLeft='5%')),
@@ -546,6 +564,11 @@ app.layout = \
                                      height='450',
                                      marginLeft='0',
                                      display='inline-block')),
+                html.Div('Select metric for above chart:',
+                         style=dict(width='30%',
+                                    float='left',
+                                    marginLeft=15,
+                                    color=theme_color['text'])),
                 dcc.RadioItems(id='measure_selection',
                                options=[{'label': i, 'value': i} for i in
                                         df_measure['label'].to_list()],
@@ -554,7 +577,7 @@ app.layout = \
                                style=dict(textAlign='center',
                                           color=theme_color['text'],
                                           height=35,
-                                          marginLeft=120,
+                                          marginLeft=0,
                                           float='left',
                                           display='inline-block')
                                )
@@ -576,9 +599,28 @@ app.layout = \
                             marginLeft='5%',
                             float='center',
                             display='inline-block')
-                 )
+                 ),
+        html.Hr(
+            style={'color': theme_color['grid'],
+                   'marginTop': 20,
+                   'marginBottom': 20}
+        ),
+        html.Div(dcc.Markdown('''
+            &nbsp;
+            &nbsp;
+            Built by [Paul Antonio](https://www.linkedin.com/in/%C4%91%E1%BA%B7ng-nguy%E1%BB%85n-tr%E1%BB%8Dng-s%C6%A1n-887261164/)  
+            Email: paulantonio.vn@gmail.com  
+            Data source [Johns Hopkins CSSE](https://github.com/CSSEGISandData/COVID-19)  
+            Source code [Github](https://github.com/antonizero99/corona19-analytics)
+        '''),
+                 style=dict(
+                     textAlign='center',
+                     color=theme_color['text'],
+                     width='100%',
+                     float='center',
+                     display='inline-block'))
     ])
 
 # Execute web app
 if __name__ == '__main__':
-    app.run_server(port=8844, debug=True)
+    app.run_server(port=8844, debug=False)
