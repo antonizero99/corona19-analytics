@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from apscheduler.schedulers.background import BackgroundScheduler
 
 import dash
 import dash_core_components as dcc
@@ -13,9 +14,11 @@ import etl.map_coordinate_data as map_coord
 import etl.pop_data as pop
 
 app = dash.Dash(__name__)
+app.title = 'Corona 19 Analytics'
 server = app.server
 
-# covid.update_data()
+version = 'ver 1.0'
+
 # CONFIG
 theme_color = {
     'background': '#111111',
@@ -46,25 +49,75 @@ format_ind_title = {'font': {'size': 20,
 # END CONFIG
 
 # BASE DATAFRAMES
+# Not used yet in this version
 df_pop_clean = pop.get_fact_pop_clean()
 world_geo_json = map_coord.get_world_geo_json()
 
-df_covid_jhu_full = covid.get_fact_jhu_full()
+# Initial DF variables
+df_covid_jhu_full = pd.DataFrame()
+df_covid_jhu_full_country = pd.DataFrame()
+df_covid_jhu_full_world = pd.DataFrame()
+df_covid_jhu_full_asia = pd.DataFrame()
+df_covid_jhu_full_eu = pd.DataFrame()
+df_covid_jhu_full_american = pd.DataFrame()
+df_covid_jhu_full_americas = pd.DataFrame()
+df_covid_jhu_full_ocean = pd.DataFrame()
+df_covid_jhu_full_africa = pd.DataFrame()
 
-df_covid_jhu_full_country = df_covid_jhu_full[~(df_covid_jhu_full['continent'].isna())]
-df_covid_jhu_full_world = df_covid_jhu_full[df_covid_jhu_full['location'] == 'World']
-df_covid_jhu_full_asia = df_covid_jhu_full[df_covid_jhu_full['location'] == 'Asia']
-df_covid_jhu_full_eu = df_covid_jhu_full[df_covid_jhu_full['location'] == 'Europe']
-df_covid_jhu_full_american = df_covid_jhu_full[df_covid_jhu_full['location'] == 'North America']
-df_covid_jhu_full_americas = df_covid_jhu_full[df_covid_jhu_full['location'] == 'South America']
-df_covid_jhu_full_ocean = df_covid_jhu_full[df_covid_jhu_full['location'] == 'Oceania']
-df_covid_jhu_full_africa = df_covid_jhu_full[df_covid_jhu_full['location'] == 'Africa']
+df_date = pd.DataFrame()
 
-df_date = pd.DataFrame(df_covid_jhu_full_world.date.reset_index(drop=True))
-df_date['date_label'] = df_date.apply(lambda d: {'style': {'transform': 'rotate(30deg) translate(0px, 7px)'},
-                                                 'label': d.date.strftime('%d-%b-%Y')}
-if (d.name < len(df_date) - 10) & (d.name % 10 == 0) else '', axis=1)
 
+sched = BackgroundScheduler()
+
+
+@sched.scheduled_job(trigger='interval', seconds=60)
+def update_data():
+    global df_covid_jhu_full
+    global df_covid_jhu_full_country
+    global df_covid_jhu_full_world
+    global df_covid_jhu_full_asia
+    global df_covid_jhu_full_eu
+    global df_covid_jhu_full_american
+    global df_covid_jhu_full_americas
+    global df_covid_jhu_full_ocean
+    global df_covid_jhu_full_africa
+
+    global df_date
+
+    # Download and save new csv files
+    covid.update_data()
+
+    # Read data from downloaded csv files
+    df_covid_jhu_full = covid.get_fact_jhu_full()
+
+    # Slicing data source into specimens
+    # Countries only
+    df_covid_jhu_full_country = df_covid_jhu_full[~(df_covid_jhu_full['continent'].isna())]
+
+    # Data for each continent
+    df_covid_jhu_full_world = df_covid_jhu_full[df_covid_jhu_full['location'] == 'World']
+    df_covid_jhu_full_asia = df_covid_jhu_full[df_covid_jhu_full['location'] == 'Asia']
+    df_covid_jhu_full_eu = df_covid_jhu_full[df_covid_jhu_full['location'] == 'Europe']
+    df_covid_jhu_full_american = df_covid_jhu_full[df_covid_jhu_full['location'] == 'North America']
+    df_covid_jhu_full_americas = df_covid_jhu_full[df_covid_jhu_full['location'] == 'South America']
+    df_covid_jhu_full_ocean = df_covid_jhu_full[df_covid_jhu_full['location'] == 'Oceania']
+    df_covid_jhu_full_africa = df_covid_jhu_full[df_covid_jhu_full['location'] == 'Africa']
+
+    # Create date dimension table
+    df_date = pd.DataFrame(df_covid_jhu_full_world.date.reset_index(drop=True))
+    df_date['date_label'] = df_date.apply(lambda d: {'style': {'transform': 'rotate(30deg) translate(0px, 7px)'},
+                                                     'label': d.date.strftime('%d-%b-%Y')}
+    if (d.name < len(df_date) - 10) & (d.name % 10 == 0) else '', axis=1)
+    print('run update job succeeded')
+
+
+# Download data and assign to base DF at the first time
+update_data()
+
+# Trigger scheduled job (update data)
+sched.start()
+
+# This DF is used for switching measure in line chart
 lst_measure = {'Confirmed': 'confirm',
                'Active': 'active',
                'Recovered': 'recover',
@@ -73,7 +126,7 @@ df_measure = pd.DataFrame(list(zip(lst_measure.keys(), lst_measure.values())), c
 
 # END BASE DATAFRAMES
 
-# Filtered dataframes
+# Initial filtered DF
 df_continent = pd.DataFrame()
 df_country = pd.DataFrame()
 scope = ''
@@ -256,7 +309,7 @@ def update_stacked_area(selected_continent, date_range, selected_country):
     fig_stacked_area.add_trace(go.Scatter(x=df['date'],
                                           y=df['active'],
                                           mode='lines',
-                                          line={'width': 1,
+                                          line={'width': 0,
                                                 'color': 'blue'},
                                           name='Active Cases',
                                           hoveron='points+fills',
@@ -269,7 +322,7 @@ def update_stacked_area(selected_continent, date_range, selected_country):
     fig_stacked_area.add_trace(go.Scatter(x=df['date'],
                                           y=df['recover'],
                                           mode='lines',
-                                          line={'width': 1,
+                                          line={'width': 0,
                                                 'color': 'green'},
                                           name='Recovers',
                                           hoveron='points+fills',
@@ -282,7 +335,7 @@ def update_stacked_area(selected_continent, date_range, selected_country):
     fig_stacked_area.add_trace(go.Scatter(x=df['date'],
                                           y=df['death'],
                                           mode='lines',
-                                          line={'width': 1,
+                                          line={'width': 0,
                                                 'color': 'red'},
                                           name='Deaths',
                                           hoveron='points+fills',
@@ -467,16 +520,10 @@ def update_filter_country(selected_continent):
     Output('filter_country', 'value'),
     [Input('filter_continent', 'value')])
 def update_filter_country_value(selected_continent):
+    # Reset filter country into None (select all) before applying new continent selection
+    # Reason: bug appear when selected country is not in the selected continent
     return None
 
-
-# @app.callback(
-#     Output('filter_country', 'value'),
-#     [Input('filter_continent', 'value')])
-# def update_filter_country(selected_continent):
-#     filter_continent(selected_continent)
-#
-#     return df_country['location'].drop_duplicates().to_list()
 
 # END CALL BACK FUNCTIONS
 
@@ -488,6 +535,10 @@ fig_scatter = go.Figure()
 # PAGE LAYOUT
 app.layout = \
     html.Div(children=[
+        html.Div(children=version,
+                 style=dict(
+                     width=100,
+                     display='inline-block')),
         html.H1(children='Corona 19 Analytics',
                 style=dict(
                     textAlign='center',

@@ -3,6 +3,8 @@ import os
 import pandas as pd
 import numpy as np
 import json
+import schedule
+import time
 
 DATA_LOCATION = '\\data\\'
 COVID_DATA_OWID = 'owid-covid-data.csv'
@@ -18,8 +20,8 @@ MAPPING_LOCATION_JHU = 'mapping_location_recover.csv'
 
 def download_data(url: str, file_name: str):
     download = requests.get(url)
-    # save_file = os.path.dirname(os.getcwd()) + DATA_LOCATION + file_name
-    save_file = os.getcwd() + DATA_LOCATION + file_name
+    save_file = os.path.dirname(os.getcwd()) + DATA_LOCATION + file_name
+    # save_file = os.getcwd() + DATA_LOCATION + file_name
     open(save_file, 'wb').write(download.content)
 
 
@@ -41,7 +43,7 @@ def update_data():
 def get_dim_location() -> pd.DataFrame:
     df = __load_csv_data(file_name=COVID_DATA_OWID)
     df_geo = df[['iso_code', 'continent', 'location',
-                 'population', 'population_density', 'gdp_per_capita', 'hospital_beds_per_thousand', 'life_expectancy']]\
+                 'population', 'population_density', 'gdp_per_capita', 'hospital_beds_per_thousand', 'life_expectancy']] \
         .drop_duplicates(subset=['iso_code', 'continent', 'location'], keep='first', ignore_index=True)
     df_geo['iso_code'].replace('OWID_KOS', 'KOS', inplace=True)
     df_geo = df_geo[~df_geo.iso_code.isna()]
@@ -156,3 +158,11 @@ def get_fact_jhu_full() -> pd.DataFrame:
 def get_dim_countries_details() -> pd.DataFrame:
     df_geojson = etl_geojson_data()
     return df_geojson
+
+
+schedule.every(12).hours.do(update_data)
+
+if __name__ == '__main__':
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
