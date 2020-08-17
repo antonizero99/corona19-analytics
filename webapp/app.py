@@ -9,9 +9,7 @@ from dash.dependencies import Input, Output
 
 import plotly.graph_objects as go
 
-import etl.covid_data as covid
-import etl.map_coordinate_data as map_coord
-import etl.pop_data as pop
+from etl import map_coordinate_data as map_coord, pop_data as pop, covid_data as covid
 
 app = dash.Dash(__name__)
 app.title = 'Corona 19 Analytics'
@@ -70,7 +68,7 @@ df_date = pd.DataFrame()
 sched = BackgroundScheduler()
 
 
-@sched.scheduled_job(trigger='interval', seconds=60)
+@sched.scheduled_job(trigger='interval', hours=1)
 def update_data():
     global df_covid_jhu_full
     global df_covid_jhu_full_country
@@ -674,4 +672,4 @@ app.layout = \
 
 # Execute web app
 if __name__ == '__main__':
-    app.run_server(port=8844, debug=False)
+    app.run_server(port=8844, debug=True)

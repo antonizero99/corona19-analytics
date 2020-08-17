@@ -1,8 +1,8 @@
 import json
-import os
+import pathlib
 
 
-DATA_LOCATION = '\\data\\'
+DATA_LOCATION = 'data'
 
 
 def get_world_geo_json() -> dict:
@@ -11,6 +11,6 @@ def get_world_geo_json() -> dict:
 
 
 def __load_world_geo_json_data() -> dict:
-    with open(os.path.dirname(os.getcwd()) + DATA_LOCATION + 'world_geo_json.json') as json_file:
+    with open(pathlib.Path.cwd().parent / DATA_LOCATION / 'world_geo_json.json') as json_file:
         world_geo_json = json.load(json_file)
     return world_geo_json
