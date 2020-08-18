@@ -19,7 +19,7 @@ MAPPING_LOCATION_JHU = 'mapping_location_recover.csv'
 def download_data(url: str, file_name: str):
     try:
         download = requests.get(url)
-        save_file = pathlib.Path.cwd().parent / DATA_LOCATION / file_name
+        save_file = pathlib.Path().resolve() / DATA_LOCATION / file_name
         open(save_file, 'wb').write(download.content)
     except requests.exceptions.Timeout:
         print('Download {} timed out'.format(file_name))
@@ -54,12 +54,12 @@ def get_dim_location() -> pd.DataFrame:
 
 
 def __load_csv_data(file_name: str) -> pd.DataFrame:
-    df = pd.read_csv(pathlib.Path.cwd().parent / DATA_LOCATION / file_name)
+    df = pd.read_csv(pathlib.Path().resolve() / DATA_LOCATION / file_name)
     return df
 
 
 def __load_json_data(file_name: str) -> dict:
-    with open(pathlib.Path.cwd().parent / DATA_LOCATION / file_name) as json_file:
+    with open(pathlib.Path().resolve() / DATA_LOCATION / file_name) as json_file:
         dc_json = json.load(json_file)
     return dc_json
 

@@ -12,7 +12,7 @@ def get_fact_pop_clean() -> pd.DataFrame:
 
 
 def __load_pop_data() -> pd.DataFrame:
-    df_pop = pd.read_csv(pathlib.Path.cwd().parent / DATA_LOCATION / 'population.csv')
+    df_pop = pd.read_csv(pathlib.Path().resolve() / DATA_LOCATION / 'population.csv')
     return df_pop
 
 

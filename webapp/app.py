@@ -67,7 +67,7 @@ df_date = pd.DataFrame()
 sched = BackgroundScheduler()
 
 
-@sched.scheduled_job(trigger='interval', hours=1)
+@sched.scheduled_job(trigger='interval', hours=2)
 def update_data():
     global df_covid_jhu_full
     global df_covid_jhu_full_country
@@ -680,4 +680,4 @@ app.layout = html.Div(id='main', children=page_layout_generator())
 
 # Execute web app
 if __name__ == '__main__':
-    app.run_server(port=8844, debug=True)
+    app.run_server(port=8844, debug=False)
