@@ -64,7 +64,6 @@ df_covid_jhu_full_africa = pd.DataFrame()
 
 df_date = pd.DataFrame()
 
-
 sched = BackgroundScheduler()
 
 
@@ -106,7 +105,7 @@ def update_data():
     df_date['date_label'] = df_date.apply(lambda d: {'style': {'transform': 'rotate(30deg) translate(0px, 7px)'},
                                                      'label': d.date.strftime('%d-%b-%Y')}
     if (d.name < len(df_date) - 10) & (d.name % 10 == 0) else '', axis=1)
-    print('run update job succeeded')
+    print('Run update job succeeded')
 
 
 # Download data and assign to base DF at the first time
@@ -189,6 +188,7 @@ filter_date()
 
 
 # CALL BACK FUNCTIONS
+# Report date info
 @app.callback(
     Output('report_date', 'children'),
     [Input('filter_date', 'value')])
@@ -523,6 +523,151 @@ def update_filter_country_value(selected_continent):
     return None
 
 
+@app.callback(
+    Output('main', 'children'),
+    [Input('filter_continent', 'value')])
+def update_page_layout(selected_continent):
+    app.layout = html.Div(id='main', children=page_layout_generator())
+    return page_layout_generator()
+
+
+def page_layout_generator():
+    return [html.Div(children=version,
+                     style=dict(
+                         width=100,
+                         display='inline-block')),
+            html.H1(children='Corona 19 Analytics',
+                    style=dict(
+                        textAlign='center',
+                        color=theme_color['text'])),
+            html.Div(children='Data last updated: {}'.format(df_covid_jhu_full.date.max().strftime('%d-%b-%Y')),
+                     style=dict(
+                         fontStyle='italic',
+                         textAlign='center',
+                         color=theme_color['text'],
+                         marginTop=0,
+                         marginBottom=20)),
+            html.Div(dcc.RadioItems(id='filter_continent',
+                                    options=[{'label': i, 'value': i} for i in
+                                             ['World'] + df_covid_jhu_full['continent']
+                                             [~df_covid_jhu_full['continent'].isna()].drop_duplicates().to_list()],
+                                    value='World',
+                                    labelStyle={'float': 'center', 'display': 'inline-block'}),
+                     style=dict(textAlign='center',
+                                color=theme_color['text'],
+                                width='100%',
+                                height=50,
+                                float='center',
+                                display='inline-block')),
+            html.Div(dcc.RangeSlider(id='filter_date',
+                                     min=0,
+                                     max=(df_covid_jhu_full_world.date.max() - df_covid_jhu_full_world.date.min()).days,
+                                     step=None,
+                                     value=[0, (df_covid_jhu_full_world.date.max() - df_covid_jhu_full_world.date.min()).days],
+                                     marks=df_date['date_label'].to_dict(),
+                                     updatemode='mouseup'),
+                     style=dict(textAlign='center',
+                                color=theme_color['text'],
+                                width='90%',
+                                marginLeft='5%',
+                                height=50,
+                                float='center',
+                                display='inline-block')),
+            html.Div(dcc.Markdown(id='report_date'),
+                     style=dict(textAlign='center',
+                                color=theme_color['text'],
+                                width='100%',
+                                height=50,
+                                float='center',
+                                display='inline-block')),
+            html.Div(dcc.Graph(id='fig_ind'),
+                     style=dict(textAlign='center',
+                                width='90%',
+                                marginLeft='5%',
+                                display='inline-block')),
+            html.Div('Multiple selection is allowed, clear the text box for "Select All"',
+                     style=dict(width='90%',
+                                float='center',
+                                marginLeft='5%',
+                                color='#fff',
+                                fontStyle='italic')),
+            html.Div(dcc.Dropdown(id='filter_country',
+                                  multi=True,
+                                  placeholder='Select Country'),
+                     style=dict(width='90%',
+                                float='center',
+                                marginLeft='5%')),
+            # Stacked area chart, line chart
+            html.Div(children=[
+                html.Div(dcc.Graph(id='fig_stacked_area'),
+                         style=dict(width='50%',
+                                    height='450',
+                                    marginLeft='0',
+                                    float='left',
+                                    display='inline-block')),
+                html.Div(children=[
+                    dcc.Graph(id='fig_line',
+                              style=dict(textAlign='center',
+                                         width='100%',
+                                         height='450',
+                                         marginLeft='0',
+                                         display='inline-block')),
+                    html.Div('Select metric for above chart:',
+                             style=dict(width='30%',
+                                        float='left',
+                                        marginLeft=15,
+                                        color=theme_color['text'])),
+                    dcc.RadioItems(id='measure_selection',
+                                   options=[{'label': i, 'value': i} for i in
+                                            df_measure['label'].to_list()],
+                                   value=df_measure['label'].to_list()[0],
+                                   labelStyle={'float': 'center', 'display': 'inline-block'},
+                                   style=dict(textAlign='center',
+                                              color=theme_color['text'],
+                                              height=35,
+                                              marginLeft=0,
+                                              float='left',
+                                              display='inline-block')
+                                   )
+                ],
+                    style=dict(textAlign='center',
+                               width='50%',
+                               marginLeft='0',
+                               marginRight='0',
+                               # float='right',
+                               display='inline-block'))],
+                style=dict(width='90%',
+                           marginLeft='5%',
+                           float='center',
+                           display='inline-block')
+            ),
+            html.Div(dcc.Graph(id='fig_map'),
+                     style=dict(textAlign='center',
+                                width='90%',
+                                marginLeft='5%',
+                                float='center',
+                                display='inline-block')
+                     ),
+            html.Hr(
+                style={'color': theme_color['grid'],
+                       'marginTop': 20,
+                       'marginBottom': 20}
+            ),
+            html.Div(dcc.Markdown('''
+                &nbsp;
+                &nbsp;
+                Built by [Paul Antonio](https://www.linkedin.com/in/%C4%91%E1%BA%B7ng-nguy%E1%BB%85n-tr%E1%BB%8Dng-s%C6%A1n-887261164/)  
+                Email: paulantonio.vn@gmail.com  
+                Data source [Johns Hopkins CSSE](https://github.com/CSSEGISandData/COVID-19)  
+                Source code [Github](https://github.com/antonizero99/corona19-analytics)
+            '''),
+                     style=dict(
+                         textAlign='center',
+                         color=theme_color['text'],
+                         width='100%',
+                         float='center',
+                         display='inline-block'))
+            ]
 # END CALL BACK FUNCTIONS
 
 
@@ -531,144 +676,7 @@ fig_scatter = go.Figure()
 # END SCATTER PLOT ANIMATED
 
 # PAGE LAYOUT
-app.layout = \
-    html.Div(children=[
-        html.Div(children=version,
-                 style=dict(
-                     width=100,
-                     display='inline-block')),
-        html.H1(children='Corona 19 Analytics',
-                style=dict(
-                    textAlign='center',
-                    color=theme_color['text'])),
-        html.Div(children='Data last updated: {}'.format(df_covid_jhu_full.date.max().strftime('%d-%b-%Y')),
-                 style=dict(
-                     fontStyle='italic',
-                     textAlign='center',
-                     color=theme_color['text'],
-                     marginTop=0,
-                     marginBottom=20)),
-        html.Div(dcc.RadioItems(id='filter_continent',
-                                options=[{'label': i, 'value': i} for i in
-                                         ['World'] + df_covid_jhu_full['continent']
-                                         [~df_covid_jhu_full['continent'].isna()].drop_duplicates().to_list()],
-                                value='World',
-                                labelStyle={'float': 'center', 'display': 'inline-block'}),
-                 style=dict(textAlign='center',
-                            color=theme_color['text'],
-                            width='100%',
-                            height=50,
-                            float='center',
-                            display='inline-block')),
-        html.Div(dcc.RangeSlider(id='filter_date',
-                                 min=0,
-                                 max=(df_continent.date.max() - df_continent.date.min()).days,
-                                 step=None,
-                                 value=[0, (df_continent.date.max() - df_continent.date.min()).days],
-                                 marks=df_date['date_label'].to_dict(),
-                                 updatemode='mouseup'),
-                 style=dict(textAlign='center',
-                            color=theme_color['text'],
-                            width='90%',
-                            marginLeft='5%',
-                            height=50,
-                            float='center',
-                            display='inline-block')),
-        html.Div(dcc.Markdown(id='report_date', ),
-                 style=dict(textAlign='center',
-                            color=theme_color['text'],
-                            width='100%',
-                            height=50,
-                            float='center',
-                            display='inline-block')),
-        html.Div(dcc.Graph(id='fig_ind'),
-                 style=dict(textAlign='center',
-                            width='90%',
-                            marginLeft='5%',
-                            display='inline-block')),
-        html.Div('Multiple selection is allowed, clear the text box for "Select All"',
-                 style=dict(width='90%',
-                            float='center',
-                            marginLeft='5%',
-                            color='#fff',
-                            fontStyle='italic')),
-        html.Div(dcc.Dropdown(id='filter_country',
-                              multi=True,
-                              placeholder='Select Country'),
-                 style=dict(width='90%',
-                            float='center',
-                            marginLeft='5%')),
-        # Stacked area chart, line chart
-        html.Div(children=[
-            html.Div(dcc.Graph(id='fig_stacked_area'),
-                     style=dict(width='50%',
-                                height='450',
-                                marginLeft='0',
-                                float='left',
-                                display='inline-block')),
-            html.Div(children=[
-                dcc.Graph(id='fig_line',
-                          style=dict(textAlign='center',
-                                     width='100%',
-                                     height='450',
-                                     marginLeft='0',
-                                     display='inline-block')),
-                html.Div('Select metric for above chart:',
-                         style=dict(width='30%',
-                                    float='left',
-                                    marginLeft=15,
-                                    color=theme_color['text'])),
-                dcc.RadioItems(id='measure_selection',
-                               options=[{'label': i, 'value': i} for i in
-                                        df_measure['label'].to_list()],
-                               value=df_measure['label'].to_list()[0],
-                               labelStyle={'float': 'center', 'display': 'inline-block'},
-                               style=dict(textAlign='center',
-                                          color=theme_color['text'],
-                                          height=35,
-                                          marginLeft=0,
-                                          float='left',
-                                          display='inline-block')
-                               )
-            ],
-                style=dict(textAlign='center',
-                           width='50%',
-                           marginLeft='0',
-                           marginRight='0',
-                           # float='right',
-                           display='inline-block'))],
-            style=dict(width='90%',
-                       marginLeft='5%',
-                       float='center',
-                       display='inline-block')
-        ),
-        html.Div(dcc.Graph(id='fig_map'),
-                 style=dict(textAlign='center',
-                            width='90%',
-                            marginLeft='5%',
-                            float='center',
-                            display='inline-block')
-                 ),
-        html.Hr(
-            style={'color': theme_color['grid'],
-                   'marginTop': 20,
-                   'marginBottom': 20}
-        ),
-        html.Div(dcc.Markdown('''
-            &nbsp;
-            &nbsp;
-            Built by [Paul Antonio](https://www.linkedin.com/in/%C4%91%E1%BA%B7ng-nguy%E1%BB%85n-tr%E1%BB%8Dng-s%C6%A1n-887261164/)  
-            Email: paulantonio.vn@gmail.com  
-            Data source [Johns Hopkins CSSE](https://github.com/CSSEGISandData/COVID-19)  
-            Source code [Github](https://github.com/antonizero99/corona19-analytics)
-        '''),
-                 style=dict(
-                     textAlign='center',
-                     color=theme_color['text'],
-                     width='100%',
-                     float='center',
-                     display='inline-block'))
-    ])
+app.layout = html.Div(id='main', children=page_layout_generator())
 
 # Execute web app
 if __name__ == '__main__':
