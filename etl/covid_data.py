@@ -17,10 +17,15 @@ MAPPING_LOCATION_JHU = 'mapping_location_recover.csv'
 
 
 def download_data(url: str, file_name: str):
-    download = requests.get(url)
-    # save_file = os.path.dirname(os.getcwd()) + DATA_LOCATION + file_name
-    save_file = pathlib.Path.cwd().parent / DATA_LOCATION / file_name
-    open(save_file, 'wb').write(download.content)
+    try:
+        download = requests.get(url)
+        save_file = pathlib.Path.cwd().parent / DATA_LOCATION / file_name
+        open(save_file, 'wb').write(download.content)
+    except requests.exceptions.Timeout:
+        print('Download {} timed out'.format(file_name))
+    except requests.exceptions.RequestException:
+        print('Download {} error'.format(file_name))
+
 
 
 def update_data():
