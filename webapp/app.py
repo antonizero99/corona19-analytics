@@ -525,7 +525,7 @@ def update_filter_country_value(selected_continent):
 
 @app.callback(
     Output('main', 'children'),
-    [Input('filter_continent', 'value')])
+    [Input('interval_refresh', 'n_intervals')])
 def update_page_layout(selected_continent):
     app.layout = html.Div(id='main', children=page_layout_generator())
     return page_layout_generator()
@@ -666,7 +666,9 @@ def page_layout_generator():
                          color=theme_color['text'],
                          width='100%',
                          float='center',
-                         display='inline-block'))
+                         display='inline-block')),
+            dcc.Interval(id='interval_refresh',
+                         disabled=True)
             ]
 # END CALL BACK FUNCTIONS
 
