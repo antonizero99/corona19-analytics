@@ -15,7 +15,7 @@ app = dash.Dash(__name__)
 app.title = 'Corona 19 Analytics'
 server = app.server
 
-version = 'ver 1.0'
+version = 'ver 1.1'
 
 # CONFIG
 theme_color = {
@@ -177,6 +177,14 @@ def filter_country(selected_country: list = None):
         df_country = df_country[df_country['location'].isin(selected_country)]
 
 
+# Combine filters in dashboard
+def combine_filters(selected_continent, date_range, selected_country):
+    filter_continent(selected_continent)
+    filter_date(from_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[0],
+                to_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[-1])
+    filter_country(selected_country)
+
+
 # Initial filter continent (default filter)
 filter_continent()
 
@@ -206,17 +214,16 @@ def report_date(date_range):
      Input('filter_date', 'value'),
      Input('filter_country', 'value')])
 def update_indicators(selected_continent, date_range, selected_country):
-    filter_continent(selected_continent)
-    filter_date(from_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[0],
-                to_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[-1])
-    filter_country(selected_country)
+    combine_filters(selected_continent, date_range, selected_country)
+
+    df = df_country.groupby(by=['date'], as_index=False).sum()
 
     fig_ind = go.Figure()
     # Death
     fig_ind.add_trace(go.Indicator(
         mode='number+delta',
-        value=df_continent.death.iat[-1],
-        delta={**{'reference': df_continent.death.iat[-2],
+        value=df.death.iat[-1],
+        delta={**{'reference': df.death.iat[-2],
                   'relative': True,
                   'valueformat': '.2%'},
                **format_ind_delta},
@@ -228,8 +235,8 @@ def update_indicators(selected_continent, date_range, selected_country):
     # Confirmed
     fig_ind.add_trace(go.Indicator(
         mode='number+delta',
-        value=df_continent.confirm.iat[-1],
-        delta={**{'reference': df_continent.confirm.iat[-2],
+        value=df.confirm.iat[-1],
+        delta={**{'reference': df.confirm.iat[-2],
                   'relative': True,
                   'valueformat': '.2%'},
                **format_ind_delta},
@@ -241,8 +248,8 @@ def update_indicators(selected_continent, date_range, selected_country):
     # Recover
     fig_ind.add_trace(go.Indicator(
         mode='number+delta',
-        value=df_continent.recover.iat[-1],
-        delta={**{'reference': df_continent.recover.iat[-2],
+        value=df.recover.iat[-1],
+        delta={**{'reference': df.recover.iat[-2],
                   'relative': True,
                   'valueformat': '.2%'},
                **format_ind_delta},
@@ -253,7 +260,7 @@ def update_indicators(selected_continent, date_range, selected_country):
 
     # New death
     fig_ind.add_trace(go.Indicator(mode='number',
-                                   value=df_continent.new_death.iat[-1],
+                                   value=df.new_death.iat[-1],
                                    domain={'column': 0, 'row': 1, 'y': [0, 0.01]},
                                    number=format_ind_number_negative,
                                    title={**{'text': 'NEW DEATHS IN DAY'}, **format_ind_title}
@@ -261,8 +268,8 @@ def update_indicators(selected_continent, date_range, selected_country):
 
     # Active
     fig_ind.add_trace(go.Indicator(mode='number+delta',
-                                   value=df_continent.active.iat[-1],
-                                   delta={**{'reference': df_continent.active.iat[-2],
+                                   value=df.active.iat[-1],
+                                   delta={**{'reference': df.active.iat[-2],
                                              'relative': False,
                                              'valueformat': ','},
                                           **format_ind_delta},
@@ -273,7 +280,7 @@ def update_indicators(selected_continent, date_range, selected_country):
 
     # New recover
     fig_ind.add_trace(go.Indicator(mode='number',
-                                   value=df_continent.new_recover.iat[-1],
+                                   value=df.new_recover.iat[-1],
                                    domain={'column': 2, 'row': 1, 'y': [0, 0.01]},
                                    number=format_ind_number_positive,
                                    title={**{'text': 'NEW RECOVERS IN DAY'}, **format_ind_title}
@@ -295,10 +302,7 @@ def update_indicators(selected_continent, date_range, selected_country):
      Input('filter_date', 'value'),
      Input('filter_country', 'value')])
 def update_stacked_area(selected_continent, date_range, selected_country):
-    filter_continent(selected_continent)
-    filter_date(from_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[0],
-                to_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[-1])
-    filter_country(selected_country)
+    combine_filters(selected_continent, date_range, selected_country)
 
     df = df_country.groupby(by=['date'], as_index=False).sum()
     # STACKED AREA CHART
@@ -389,10 +393,7 @@ def update_stacked_area(selected_continent, date_range, selected_country):
      Input('filter_country', 'value'),
      Input('measure_selection', 'value')])
 def update_line_chart(selected_continent, date_range, selected_country, measure_selection=df_measure['label'].iat[0]):
-    filter_continent(selected_continent)
-    filter_date(from_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[0],
-                to_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[-1])
-    filter_country(selected_country)
+    combine_filters(selected_continent, date_range, selected_country)
 
     measure = df_measure['measure'][df_measure['label'] == measure_selection].iat[0]
 
@@ -440,10 +441,7 @@ def update_line_chart(selected_continent, date_range, selected_country, measure_
      Input('filter_date', 'value'),
      Input('filter_country', 'value')])
 def update_map(selected_continent, date_range, selected_country):
-    filter_continent(selected_continent)
-    filter_date(from_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[0],
-                to_date=df_date.loc[date_range[0]:date_range[1]:1]['date'].to_list()[-1])
-    filter_country(selected_country)
+    combine_filters(selected_continent, date_range, selected_country)
 
     # MAP 1
     df = df_country[df_country.date == df_country.date.max()]
@@ -507,6 +505,150 @@ def update_map(selected_continent, date_range, selected_country):
 
 
 @app.callback(
+    Output('fig_table_confirm', 'figure'),
+    [Input('filter_continent', 'value'),
+     Input('filter_date', 'value'),
+     Input('filter_country', 'value')])
+def update_table_confirm(selected_continent, date_range, selected_country):
+    combine_filters(selected_continent, date_range, selected_country)
+
+    df_top_new_confirm = df_country.sort_values(by='new_confirm', ascending=False, axis=0)
+    df_top_new_recover = df_country.sort_values(by='new_recover', ascending=False, axis=0)
+    df_top_new_death = df_country.sort_values(by='new_death', ascending=False, axis=0)
+
+    fig_table_confirm = go.Figure()
+
+    # Fill in data in table
+    fig_table_confirm.add_trace(go.Table(
+        header={'values': ['<b>Country</b>', '<b>Date</b>', '<b>Confirmed cases in day</b>']},
+        cells={'values': [df_top_new_confirm['location'][0:15:1].to_list(),
+                          df_top_new_confirm['date'][0:15:1].dt.strftime('%d-%b-%Y').to_list(),
+                          df_top_new_confirm['new_confirm'][0:15:1].to_list()]}
+    ))
+
+    # Format table
+    fig_table_confirm.update_traces(
+        columnwidth=[1, 1, 1.2],
+        header=dict(fill_color='grey',
+                    font=dict(color='white', size=12),
+                    align=['left', 'center', 'center']),
+        cells=dict(fill_color='black',
+                   format=['', '', ','],
+                   align=['left', 'center', 'center'],
+                   height=25)
+    )
+
+    fig_table_confirm.update_layout(
+        title=dict(text='Most Impact',
+                   x=0.5,
+                   font_color=theme_color['neutral']),
+        font_color=theme_color['text'],
+        paper_bgcolor=theme_color['background'],
+        plot_bgcolor=theme_color['background'],
+        margin={"r": 15, "t": 90, "l": 15, "b": 20},
+        height=540
+    )
+
+    return fig_table_confirm
+
+
+@app.callback(
+    Output('fig_table_recover', 'figure'),
+    [Input('filter_continent', 'value'),
+     Input('filter_date', 'value'),
+     Input('filter_country', 'value')])
+def update_table_recover(selected_continent, date_range, selected_country):
+    combine_filters(selected_continent, date_range, selected_country)
+
+    df_top_new_confirm = df_country.sort_values(by='new_confirm', ascending=False, axis=0)
+    df_top_new_recover = df_country.sort_values(by='new_recover', ascending=False, axis=0)
+    df_top_new_death = df_country.sort_values(by='new_death', ascending=False, axis=0)
+
+    fig_table_recover = go.Figure()
+
+    # Fill in data in table
+    fig_table_recover.add_trace(go.Table(
+        header={'values': ['<b>Country</b>', '<b>Date</b>', '<b>Recovered cases in day</b>']},
+        cells={'values': [df_top_new_recover['location'][0:15:1].to_list(),
+                          df_top_new_recover['date'][0:15:1].dt.strftime('%d-%b-%Y').to_list(),
+                          df_top_new_recover['new_recover'][0:15:1].to_list()]}
+    ))
+
+    # Format table
+    fig_table_recover.update_traces(
+        columnwidth=[1, 1, 1.2],
+        header=dict(fill_color='grey',
+                    font=dict(color='white', size=12),
+                    align=['left', 'center', 'center']),
+        cells=dict(fill_color='black',
+                   format=['', '', ','],
+                   align=['left', 'center', 'center'],
+                   height=25)
+    )
+
+    fig_table_recover.update_layout(
+        title=dict(text='Most Hopeful',
+                   x=0.5,
+                   font_color=theme_color['positive']),
+        font_color=theme_color['text'],
+        paper_bgcolor=theme_color['background'],
+        plot_bgcolor=theme_color['background'],
+        margin={"r": 15, "t": 90, "l": 15, "b": 20},
+        height=540
+    )
+
+    return fig_table_recover
+
+
+@app.callback(
+    Output('fig_table_death', 'figure'),
+    [Input('filter_continent', 'value'),
+     Input('filter_date', 'value'),
+     Input('filter_country', 'value')])
+def update_table_death(selected_continent, date_range, selected_country):
+    combine_filters(selected_continent, date_range, selected_country)
+
+    df_top_new_confirm = df_country.sort_values(by='new_confirm', ascending=False, axis=0)
+    df_top_new_recover = df_country.sort_values(by='new_recover', ascending=False, axis=0)
+    df_top_new_death = df_country.sort_values(by='new_death', ascending=False, axis=0)
+
+    fig_table_death = go.Figure()
+
+    # Fill in data in table
+    fig_table_death.add_trace(go.Table(
+        header={'values': ['<b>Country</b>', '<b>Date</b>', '<b>Death in day</b>']},
+        cells={'values': [df_top_new_death['location'][0:15:1].to_list(),
+                          df_top_new_death['date'][0:15:1].dt.strftime('%d-%b-%Y').to_list(),
+                          df_top_new_death['new_death'][0:15:1].to_list()]}
+    ))
+
+    # Format table
+    fig_table_death.update_traces(
+        columnwidth=[1, 1, 1.2],
+        header=dict(fill_color='grey',
+                    font=dict(color='white', size=12),
+                    align=['left', 'center', 'center']),
+        cells=dict(fill_color='black',
+                   format=['', '', ','],
+                   align=['left', 'center', 'center'],
+                   height=25)
+    )
+
+    fig_table_death.update_layout(
+        title=dict(text='Most Tragic',
+                   x=0.5,
+                   font_color=theme_color['negative']),
+        font_color=theme_color['text'],
+        paper_bgcolor=theme_color['background'],
+        plot_bgcolor=theme_color['background'],
+        margin={"r": 15, "t": 90, "l": 15, "b": 20},
+        height=540
+    )
+
+    return fig_table_death
+
+
+@app.callback(
     Output('filter_country', 'options'),
     [Input('filter_continent', 'value')])
 def update_filter_country(selected_continent):
@@ -563,7 +705,8 @@ def page_layout_generator():
                                      min=0,
                                      max=(df_covid_jhu_full_world.date.max() - df_covid_jhu_full_world.date.min()).days,
                                      step=None,
-                                     value=[0, (df_covid_jhu_full_world.date.max() - df_covid_jhu_full_world.date.min()).days],
+                                     value=[0, (
+                                                 df_covid_jhu_full_world.date.max() - df_covid_jhu_full_world.date.min()).days],
                                      marks=df_date['date_label'].to_dict(),
                                      updatemode='mouseup'),
                      style=dict(textAlign='center',
@@ -648,6 +791,27 @@ def page_layout_generator():
                                 float='center',
                                 display='inline-block')
                      ),
+            html.Div(dcc.Graph(id='fig_table_confirm'),
+                     style=dict(textAlign='center',
+                                width='33%',
+                                height='800',
+                                marginLeft='0',
+                                display='inline-block')
+                     ),
+            html.Div(dcc.Graph(id='fig_table_recover'),
+                     style=dict(textAlign='center',
+                                width='33%',
+                                height='800',
+                                marginLeft='0',
+                                display='inline-block')
+                     ),
+            html.Div(dcc.Graph(id='fig_table_death'),
+                     style=dict(textAlign='center',
+                                width='33%',
+                                height='800',
+                                marginLeft='0',
+                                display='inline-block')
+                     ),
             html.Hr(
                 style={'color': theme_color['grid'],
                        'marginTop': 20,
@@ -670,6 +834,8 @@ def page_layout_generator():
             dcc.Interval(id='interval_refresh',
                          disabled=True)
             ]
+
+
 # END CALL BACK FUNCTIONS
 
 
