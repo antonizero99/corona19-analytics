@@ -512,44 +512,7 @@ def update_map(selected_continent, date_range, selected_country):
 def update_table_confirm(selected_continent, date_range, selected_country):
     combine_filters(selected_continent, date_range, selected_country)
 
-    df_top_new_confirm = df_country.sort_values(by='new_confirm', ascending=False, axis=0)
-    df_top_new_recover = df_country.sort_values(by='new_recover', ascending=False, axis=0)
-    df_top_new_death = df_country.sort_values(by='new_death', ascending=False, axis=0)
-
-    fig_table_confirm = go.Figure()
-
-    # Fill in data in table
-    fig_table_confirm.add_trace(go.Table(
-        header={'values': ['<b>Country</b>', '<b>Date</b>', '<b>Confirmed cases in day</b>']},
-        cells={'values': [df_top_new_confirm['location'][0:15:1].to_list(),
-                          df_top_new_confirm['date'][0:15:1].dt.strftime('%d-%b-%Y').to_list(),
-                          df_top_new_confirm['new_confirm'][0:15:1].to_list()]}
-    ))
-
-    # Format table
-    fig_table_confirm.update_traces(
-        columnwidth=[1, 1, 1.2],
-        header=dict(fill_color='grey',
-                    font=dict(color='white', size=12),
-                    align=['left', 'center', 'center']),
-        cells=dict(fill_color='black',
-                   format=['', '', ','],
-                   align=['left', 'center', 'center'],
-                   height=25)
-    )
-
-    fig_table_confirm.update_layout(
-        title=dict(text='Most Impact',
-                   x=0.5,
-                   font_color=theme_color['neutral']),
-        font_color=theme_color['text'],
-        paper_bgcolor=theme_color['background'],
-        plot_bgcolor=theme_color['background'],
-        margin={"r": 15, "t": 90, "l": 15, "b": 20},
-        height=540
-    )
-
-    return fig_table_confirm
+    return table_figure_generator('confirm', 15)
 
 
 @app.callback(
@@ -560,44 +523,7 @@ def update_table_confirm(selected_continent, date_range, selected_country):
 def update_table_recover(selected_continent, date_range, selected_country):
     combine_filters(selected_continent, date_range, selected_country)
 
-    df_top_new_confirm = df_country.sort_values(by='new_confirm', ascending=False, axis=0)
-    df_top_new_recover = df_country.sort_values(by='new_recover', ascending=False, axis=0)
-    df_top_new_death = df_country.sort_values(by='new_death', ascending=False, axis=0)
-
-    fig_table_recover = go.Figure()
-
-    # Fill in data in table
-    fig_table_recover.add_trace(go.Table(
-        header={'values': ['<b>Country</b>', '<b>Date</b>', '<b>Recovered cases in day</b>']},
-        cells={'values': [df_top_new_recover['location'][0:15:1].to_list(),
-                          df_top_new_recover['date'][0:15:1].dt.strftime('%d-%b-%Y').to_list(),
-                          df_top_new_recover['new_recover'][0:15:1].to_list()]}
-    ))
-
-    # Format table
-    fig_table_recover.update_traces(
-        columnwidth=[1, 1, 1.2],
-        header=dict(fill_color='grey',
-                    font=dict(color='white', size=12),
-                    align=['left', 'center', 'center']),
-        cells=dict(fill_color='black',
-                   format=['', '', ','],
-                   align=['left', 'center', 'center'],
-                   height=25)
-    )
-
-    fig_table_recover.update_layout(
-        title=dict(text='Most Hopeful',
-                   x=0.5,
-                   font_color=theme_color['positive']),
-        font_color=theme_color['text'],
-        paper_bgcolor=theme_color['background'],
-        plot_bgcolor=theme_color['background'],
-        margin={"r": 15, "t": 90, "l": 15, "b": 20},
-        height=540
-    )
-
-    return fig_table_recover
+    return table_figure_generator('recover', 15)
 
 
 @app.callback(
@@ -608,44 +534,7 @@ def update_table_recover(selected_continent, date_range, selected_country):
 def update_table_death(selected_continent, date_range, selected_country):
     combine_filters(selected_continent, date_range, selected_country)
 
-    df_top_new_confirm = df_country.sort_values(by='new_confirm', ascending=False, axis=0)
-    df_top_new_recover = df_country.sort_values(by='new_recover', ascending=False, axis=0)
-    df_top_new_death = df_country.sort_values(by='new_death', ascending=False, axis=0)
-
-    fig_table_death = go.Figure()
-
-    # Fill in data in table
-    fig_table_death.add_trace(go.Table(
-        header={'values': ['<b>Country</b>', '<b>Date</b>', '<b>Death in day</b>']},
-        cells={'values': [df_top_new_death['location'][0:15:1].to_list(),
-                          df_top_new_death['date'][0:15:1].dt.strftime('%d-%b-%Y').to_list(),
-                          df_top_new_death['new_death'][0:15:1].to_list()]}
-    ))
-
-    # Format table
-    fig_table_death.update_traces(
-        columnwidth=[1, 1, 1.2],
-        header=dict(fill_color='grey',
-                    font=dict(color='white', size=12),
-                    align=['left', 'center', 'center']),
-        cells=dict(fill_color='black',
-                   format=['', '', ','],
-                   align=['left', 'center', 'center'],
-                   height=25)
-    )
-
-    fig_table_death.update_layout(
-        title=dict(text='Most Tragic',
-                   x=0.5,
-                   font_color=theme_color['negative']),
-        font_color=theme_color['text'],
-        paper_bgcolor=theme_color['background'],
-        plot_bgcolor=theme_color['background'],
-        margin={"r": 15, "t": 90, "l": 15, "b": 20},
-        height=540
-    )
-
-    return fig_table_death
+    return table_figure_generator('death', 15)
 
 
 @app.callback(
@@ -671,6 +560,61 @@ def update_filter_country_value(selected_continent):
 def update_page_layout(selected_continent):
     app.layout = html.Div(id='main', children=page_layout_generator())
     return page_layout_generator()
+
+
+def table_figure_generator(table_content='confirm', top: int = 15):
+    column_mapping = dict(confirm='new_confirm',
+                          recover='new_recover',
+                          death='new_death')
+
+    title_mapping = dict(confirm='Most Impact',
+                         recover='Most Hopeful',
+                         death='Most Tragic')
+
+    title_color_mapping = dict(confirm=theme_color['neutral'],
+                               recover=theme_color['positive'],
+                               death=theme_color['negative'])
+
+    # Determine column name and table config
+    column = column_mapping.get(table_content)
+    table_title = title_mapping.get(table_content)
+    table_title_color = title_color_mapping.get(table_content)
+    df_top = df_country.sort_values(by=column, ascending=False, axis=0)
+
+    fig_table = go.Figure()
+
+    # Fill in data in table
+    fig_table.add_trace(go.Table(
+        header={'values': ['<b>Country</b>', '<b>Date</b>', '<b>Death in day</b>']},
+        cells={'values': [df_top['location'][0:top:1].to_list(),
+                          df_top['date'][0:top:1].dt.strftime('%d-%b-%Y').to_list(),
+                          df_top[column][0:top:1].to_list()]}
+    ))
+
+    # Format table
+    fig_table.update_traces(
+        columnwidth=[1, 1, 1.2],
+        header=dict(fill_color='grey',
+                    font=dict(color='white', size=12),
+                    align=['left', 'center', 'center']),
+        cells=dict(fill_color='black',
+                   format=['', '', ','],
+                   align=['left', 'center', 'center'],
+                   height=25)
+    )
+
+    fig_table.update_layout(
+        title=dict(text=table_title,
+                   x=0.5,
+                   font_color=table_title_color),
+        font_color=theme_color['text'],
+        paper_bgcolor=theme_color['background'],
+        plot_bgcolor=theme_color['background'],
+        margin={"r": 15, "t": 90, "l": 15, "b": 20},
+        height=540
+    )
+
+    return fig_table
 
 
 def page_layout_generator():
