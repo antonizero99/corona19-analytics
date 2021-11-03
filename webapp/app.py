@@ -571,6 +571,10 @@ def table_figure_generator(table_content='confirm', top: int = 15):
                          recover='Most Hopeful',
                          death='Most Tragic')
 
+    header_mapping = dict(confirm='Confirm',
+                          recover='Recover',
+                          death='Death')
+
     title_color_mapping = dict(confirm=theme_color['neutral'],
                                recover=theme_color['positive'],
                                death=theme_color['negative'])
@@ -585,7 +589,7 @@ def table_figure_generator(table_content='confirm', top: int = 15):
 
     # Fill in data in table
     fig_table.add_trace(go.Table(
-        header={'values': ['<b>Country</b>', '<b>Date</b>', '<b>Death in day</b>']},
+        header={'values': ['<b>Country</b>', '<b>Date</b>', f'<b>{header_mapping.get(table_content)} in day</b>']},
         cells={'values': [df_top['location'][0:top:1].to_list(),
                           df_top['date'][0:top:1].dt.strftime('%d-%b-%Y').to_list(),
                           df_top[column][0:top:1].to_list()]}
