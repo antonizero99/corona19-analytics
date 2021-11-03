@@ -104,7 +104,7 @@ def update_data():
     df_date = pd.DataFrame(df_covid_jhu_full_world.date.reset_index(drop=True))
     df_date['date_label'] = df_date.apply(lambda d: {'style': {'transform': 'rotate(30deg) translate(0px, 7px)'},
                                                      'label': d.date.strftime('%d-%b-%Y')}
-    if (d.name < len(df_date) - 10) & (d.name % 10 == 0) else '', axis=1)
+    if (d.name < len(df_date) - 20) & (d.name % 20 == 0) else '', axis=1)
     print('Run update job succeeded')
 
 
